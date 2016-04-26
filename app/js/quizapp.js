@@ -12,11 +12,12 @@
  * ---------------------------------------------------------------------
 */
 // Project Name :: Project Engage
-// Quiz type 	:: Text Twist
+// Quiz type    :: Text Twist
 
 
 // Prototyepe for Shuffling
 String.prototype.shuffle = function () {
+	'use strict';
     var a = this.split(""),
         n = a.length;
 
@@ -28,7 +29,7 @@ String.prototype.shuffle = function () {
     }
     // return a.join("");
     return a;
-}
+};
 
 // App Core Functions
 
@@ -1251,7 +1252,7 @@ var App = (function(){
 			data : data,
 			cache: false,
 			success : function(response){
-				if( response.response_code == 0){
+				if( response.response_code === 0){
 					var result = response.data;
 					// Setup all new data
 					console.log('API 3 ito!! ---> ', result);
@@ -1353,7 +1354,7 @@ var App = (function(){
 			game_id : configMap.game.id,
 			topic_id : configMap.topic.id,
 			result : configMap.match.result[me.place],
-			xp_points : me.score,
+			xp_points : me.score
 		};
 
 		// Call API 9
@@ -2015,11 +2016,13 @@ var App = (function(){
 		if (configMap.gameTimer.points >= 0 && configMap.gameTimer.timing !== null){
 			$('.header__points').html(App.Templates['header-points']({ game : configMap.gameTimer }));
 
-			// if(configMap.gameTimer.points === 0){
-			// 	if(!configMap.hasAnswered){
-			// 		checkAnswer();
-			// 	}
-			// }
+			if(configMap.gameTimer.points === 0){
+				// if(!configMap.hasAnswered){
+				// 	checkAnswer();
+				// }
+				// End match over here
+				renderResults();
+			}
 
 		}else if(configMap.gameTimer.points < 0){
 			unbind();
@@ -2323,7 +2326,7 @@ var App = (function(){
 					configMap.modal.title = "Oops..";
 					configMap.modal.message = "Looks like there are no available player for this topic.";
 					configMap.modal.buttons = {
-						"exit" : { "caption" : "Leave game", "class" : "pop-up__exit is-yellow" },
+						"exit" : { "caption" : "Leave game", "class" : "pop-up__exit is-yellow" }
 					};
 					configMap.modal.isActive = true;
 
@@ -2651,7 +2654,7 @@ var App = (function(){
 	// Method Start -- genLetters
 	// Purpose -- Generate box for each letter depending on mode (i.e, buttons, blank)
 	var genLetters = function(mode){
-		var mode = mode || "blank";
+		mode = mode || "blank";
 		var data = [];
 		// html += "<ul class='"+mode+"'>";
 
@@ -2689,11 +2692,10 @@ var App = (function(){
 	var addRandomChars = function(strlen){
 		// Max of 10 chars only for the word
 		var max = 10;
-		var text = configMap.currentScram;
 		var ilen = (max > strlen) ? max - strlen : 0;
 		var possible = "abcdefghijklmnopqrstuvwxyz";
 		var text = "";
-		if( ilen != 0){
+		if( ilen !== 0){
 			for( var i = 0 ; i < ilen ; i++){
 				text += possible.charAt(Math.floor(Math.random() * possible.length));
 			}
