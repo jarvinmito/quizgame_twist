@@ -3358,7 +3358,7 @@ body {
   /* line 42, C:/xampp/htdocs/projects/engage/quizgame/app/scss/05-objects/_engage.scss */
   .engage .game-exit {
     position: absolute;
-    top: 20px;
+    top: 10px;
     right: 10px;
     z-index: 999; }
     /* line 47, C:/xampp/htdocs/projects/engage/quizgame/app/scss/05-objects/_engage.scss */
@@ -3929,18 +3929,15 @@ body {
       margin-bottom: 0; }
   /* line 126, C:/xampp/htdocs/projects/engage/quizgame/app/scss/06-components/_result-page.scss */
   .result-page__notify {
-    height: 7vh;
-    line-height: 7vh;
-    margin-bottom: 10px;
     text-align: center;
     font-weight: 600;
     font-size: 16px;
     margin-top: 0;
     color: #2d4d80; }
-    /* line 136, C:/xampp/htdocs/projects/engage/quizgame/app/scss/06-components/_result-page.scss */
+    /* line 132, C:/xampp/htdocs/projects/engage/quizgame/app/scss/06-components/_result-page.scss */
     .result-page__notify.is-red {
       color: #d23139; }
-  /* line 140, C:/xampp/htdocs/projects/engage/quizgame/app/scss/06-components/_result-page.scss */
+  /* line 136, C:/xampp/htdocs/projects/engage/quizgame/app/scss/06-components/_result-page.scss */
   .result-page__rematch {
     flex: 3; }
 

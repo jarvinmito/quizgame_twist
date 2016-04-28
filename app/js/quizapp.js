@@ -34,10 +34,10 @@ String.prototype.shuffle = function () {
 // App Core Functions
 
 var App = (function(){
-	var serverPath = "http://192.168.20.75";
-	var apiBasePath = serverPath+"/engage/api/texttsql";
-	// var qimagePath = serverPath+"/engage_cms/mod/engage/images/question/"; // SERVER
-	var qimagePath = serverPath+"/sites/elgg/mod/engage/images/question/"; // DON SERVER
+	var serverPath = config.serverPath;
+	var apiBasePath = config.serverPath+config.apiBasePath;
+	var qimagePath = config.serverPath+config.qimagePath;
+	// var qimagePath = serverPath+"/sites/elgg/mod/engage/images/question/"; // DON SERVER
 	// var qimagePath = "assets/images/questions/"; // LOCAL
 	// var apiBasePath = "../../engage/api/quizsql";
 
@@ -45,6 +45,7 @@ var App = (function(){
 	// Purpose : Holds necessary information about the Game App
 	var configMap = {
 			open_type : null,
+			engage_match : null,
 			plstore : {
 				id : 'PLAYER__ID',
 				name : 'PLAYER__NAME',
@@ -53,7 +54,7 @@ var App = (function(){
 				mode : 'OPEN__TYPE'
 			},
 			apis : {
-				base : '../app/api/',
+				base : '../quiz_twist/api/',
 				// base : '../quiz_multichoice/api/',
 				api : {
 					'find' : 'fm.php',
@@ -193,7 +194,7 @@ var App = (function(){
 		if( configMap.isStatic ){
 			// Static
 			configMap.game = {
-				"id" : 2,
+				"id" : 5,
 				"name" : "Text Twist",
 				"type" : "Text Twist"
 			};
@@ -285,15 +286,21 @@ var App = (function(){
 				}
 			};
 		}else{
-			var match_details = localStorage[configMap.plstore.match];
+			var match_details;
+			if( configMap.engage_match === null ){
+				match_details = localStorage[configMap.plstore.match];
+			}else{
+				match_details = configMap.engage_match;
+			}
+
 			var match_json = stringToJSON(match_details);
 
 			console.log('match_json --> ', match_json);
 
 			var gameDefault = {
-				"id" : 2,
-				"name" : "Quiz Game",
-				"type" : "multiple choice"
+				"id" : 5,
+				"name" : "Text Twist",
+				"type" : "text twist"
 			};
 
 			var topicDefault = {
@@ -310,13 +317,43 @@ var App = (function(){
 				}
 			};
 
-			configMap.game = (match_json.data) ? match_json.data.game : (match_json.game) ? match_json.game : gameDefault;
-			configMap.topic = (match_json.data) ? match_json.data.topic : (match_json.topic) ? match_json.topic : topicDefault;
-			configMap.qs = (match_json.data) ? match_json.data.qs : (match_json.qs) ? match_json.qs : {};
-			configMap.ps = (match_json.data) ? { "players" : match_json.data.players } : (match_json.players) ? { "players" : match_json.players } : {};
-			
+			// configMap.game = (match_json.data) ? match_json.data.game : (match_json.game) ? match_json.game : gameDefault;
+			// configMap.topic = (match_json.data) ? match_json.data.topic : (match_json.topic) ? match_json.topic : topicDefault;
+			// configMap.qs = (match_json.data) ? match_json.data.qs : (match_json.qs) ? match_json.qs : {};
+			// configMap.ps = (match_json.data) ? { "players" : match_json.data.players } : (match_json.players) ? { "players" : match_json.players } : {};
+			if( match_json.game ){
+				configMap.game = match_json.game;
+			}else{
+				configMap.game = gameDefault;
+			}
+
+			if( match_json.topic ){
+				configMap.topic = match_json.topic;
+			}else{
+				configMap.topic = topicDefault;
+			}
+
+			if( match_json.ps ){
+				configMap.ps = match_json.ps;
+			}else if( match_json.players ){
+				configMap.ps = { "players" : match_json.players };
+			}else{
+				configMap.ps = {};
+			}
+
+			var qs = {};
+
+			if( match_json.qs ){
+				qs = match_json.qs;
+			}
+
+
 			if( match_json.data ){
+				configMap.game = match_json.data.game;
+				configMap.topic = match_json.data.topic;
 				configMap.match = match_json.data.match;
+				qs = match_json.data.qs;
+				configMap.ps = { "players" : match_json.data.players };
 			}else if( match_json.match ){
 				configMap.match = match_json.match;
 			}else{
@@ -325,14 +362,17 @@ var App = (function(){
 
 			configMap.match.result = { a : null, b : null };
 
-		}
-
-
-		// setup user_answer for each questions
-		var qslen = configMap.qs.questions.length;
-		for(var q = 0 ; q < qslen ; q++){
-			configMap.qs.questions[q].user_answer = null;
-			// configMap.qs.questions[q].ispassed = false;
+			configMap.qs = qs;
+			// for challenge from native
+			// setup user_answer for each questions
+			if( configMap.qs.questions ){
+				var qslen = configMap.qs.questions.length;
+				for(var q = 0 ; q < qslen ; q++){
+					if( !configMap.qs.questions[q].user_answer ){
+						configMap.qs.questions[q].user_answer = null;
+					}
+				}
+			}
 		}
 
 		configMap.scores = {};
@@ -940,6 +980,8 @@ var App = (function(){
 	// Purpose : Displays the result of the match
 	var renderResults = function(){
 
+		configMap.engage_match = null;
+
 		endTimer(configMap.gameTimer);
 
 		// Reset Modal
@@ -1170,6 +1212,7 @@ var App = (function(){
 			error : function(xhr, t, m){
 				// Display error handler
 				errorConnectionHandler(xhr, t, m);
+				freeze();
 			}
 		});
 	};
@@ -1198,7 +1241,6 @@ var App = (function(){
 			cache: false,
 			success : function(result){
 				// Setup all new data
-				console.log('API 1 ito!!! ---> ', result);
 				var obj = result;
 				var objData = obj.data;
 
@@ -1206,12 +1248,15 @@ var App = (function(){
 					'players' : result.players
 				};
 
+				console.log('API 1 ito!!! ---> ', result);
+
 				localStorage[configMap.plstore.match] = jsonToString(result);
 				// Reset ENGAGE__MATCH
 				localStorage.removeItem(configMap.plstore.mode);
 				localStorage.setItem(configMap.plstore.mode, 'challenger');
 				// localStorage[configMap.plstore.mode] = 'challenger';
 				configMap.open_type = 'challenger';
+				configMap.engage_match = jsonToString(result);
 
 				initSetup();
 				bind();
@@ -1220,6 +1265,7 @@ var App = (function(){
 			error : function(xhr, t, m){
 				// Display error handler
 				errorConnectionHandler(xhr, t, m);
+				freeze();
 			}
 		});
 	};
@@ -1255,6 +1301,15 @@ var App = (function(){
 				if( response.response_code === 0){
 					var result = response.data;
 					// Setup all new data
+
+					// if( result.qs.length ){
+					// 	var qslen = result.data.qs.questions.length;
+					// 	for(var q = 0 ; q < qslen ; q++){
+					// 		result.data.qs.questions[q].user_answer = null;
+					// 		// configMap.qs.questions[q].ispassed = false;
+					// 	}
+					// }
+
 					console.log('API 3 ito!! ---> ', result);
 
 					localStorage[configMap.plstore.match] = jsonToString(result);
@@ -1262,6 +1317,7 @@ var App = (function(){
 					localStorage.setItem(configMap.plstore.mode, 'join');
 					// localStorage[configMap.plstore.mode] = 'join';
 					configMap.open_type = 'join';
+					configMap.engage_match = jsonToString(result);
 					
 					destroyModal();
 					initModule();
@@ -1285,6 +1341,8 @@ var App = (function(){
 					}else{
 						$resultButtons.prepend($('<p>'+optext+'</p>'));
 					}
+
+					freeze();
 				}
 			},
 			error : function(xhr, t ,m){
@@ -1309,6 +1367,7 @@ var App = (function(){
 					$resultButtons.prepend($('<p>'+optext+'</p>'));
 				}
 				//errorConnectionHandler(xhr, t, m);
+				freeze();
 			}
 		});
 
@@ -1410,6 +1469,7 @@ var App = (function(){
 			error : function(xhr, t, m){
 				// Display error handler
 				errorConnectionHandler(xhr, t, m);
+				freeze();
 			}
 		});
 	};
@@ -1442,7 +1502,7 @@ var App = (function(){
 
 		console.log(data);
 		// remove Modal
-		var screens = ['waiting-rm','result'];
+		var screens = ['waiting-rm','result', 'waiting-ch'];
 
 		if( screens.indexOf(configMap.currentScreen) == -1 ){
 			destroyModal();
@@ -1471,6 +1531,7 @@ var App = (function(){
 				error : function(xhr, t, m){
 					// Display error handler
 					errorConnectionHandler(xhr, t, m);
+					freeze();
 				}
 			});
 		}else{
@@ -1715,12 +1776,14 @@ var App = (function(){
 							configMap.modal.message = "Your opponent has left the game.";
 							configMap.modal.isActive = true;
 							configMap.modal.buttons = {
-									"back" : { "caption" : "Close", "class" : "pop-up__leave--no is-yellow" }
+									"back" : { "caption" : "Leave game", "class" : "pop-up__exit is-yellow" }
 								};
 							renderModal();
 
-							destroyWaitingRematch();
-							renderResultButtons(true);
+							if( configMap.currentScreen === 'waiting-rm'){
+								destroyWaitingRematch();
+								renderResultButtons(true);
+							}
 
 							callApi10(true);
 						}
@@ -1733,6 +1796,7 @@ var App = (function(){
 			error : function(xhr, t, m){
 				// Display error handler
 				errorConnectionHandler(xhr, t, m);
+				freeze();
 			}
 		});
 	};
@@ -1792,6 +1856,9 @@ var App = (function(){
 		
 		// Set screen
 		configMap.currentScreen = 'versus';
+		
+		// configMap.ps.players.a.icon = configMap.ps.players.a.photo_url;
+		// configMap.ps.players.b.icon = configMap.ps.players.b.photo_url;
 
 		var players = configMap.ps.players;
 		var player = configMap.player.name;
@@ -1814,7 +1881,6 @@ var App = (function(){
 			for(var key in players){
 				if (players.hasOwnProperty(key)){
 					if(players[key].name == player){
-
 						console.log(' LEFT SIDE : ', player);
 						configMap.playerLocalPos.left = players[key];
 						// configMap.player = players[key];
@@ -1887,15 +1953,16 @@ var App = (function(){
 			// Add is-correct in class if correct;
 			$container = jqueryMap.$ingame.html($('<div class="text-twist"/>'));
 
-		q.round = configMap.currentRound;
-		q.maxround = configMap.qs.questions.length;
+		var data = q;
+		data.round = configMap.currentRound;
+		data.maxround = configMap.qs.questions.length;
 
 		//var $question = $('<div class="ingame__question" />');
 		//var $image = $('<div class="ingame__image" />');
 		var $options = $('<div class="ingame__options" />');
 		// var $main = ( !q.image ) ? $question : $image;
 
-		$container.find('.text-twist').html(App.Templates['question']({ data : q, imagepath : qimagePath }));
+		$container.find('.text-twist').html(App.Templates['question']({ data : data, imagepath : qimagePath }));
 		// $container.append($options);
 
 		endTimer(configMap.roundTimer);
@@ -2045,6 +2112,20 @@ var App = (function(){
 				dataType : 'json',
 				cache: false,
 				success : function(result){
+					var players = getPlayerProps();
+
+					var me = players.me;
+					var op = players.op;
+
+					if( result[op.place].isactive === "false" ){
+						configMap.modal.title = "Uh oh...";
+						configMap.modal.message = "Your opponent has left the game.";
+						configMap.modal.isActive = true;
+						configMap.modal.buttons = {
+								"back" : { "caption" : "Close", "class" : "pop-up__leave--yes is-yellow" }
+							};
+						renderModal();
+					}
 
 					// if( configMap.roundHasEnded === false ){
 						// var count = configMap.currentRoundCount;
@@ -2118,6 +2199,7 @@ var App = (function(){
 					console.log('oh noe!');
 					// Display modal
 					errorConnectionHandler(xhr, t, m);
+					freeze();
 				}
 			});
 
@@ -2187,6 +2269,7 @@ var App = (function(){
 				console.log('fudge on loading profiles! ', xhr);
 				// Display error handler
 				errorConnectionHandler(xhr, t, m);
+				freeze();
 			}
 		});
 	};
@@ -2271,10 +2354,12 @@ var App = (function(){
 
 						// setup user_answer for each questions
 						var qslen = configMap.qs.questions.length;
-						for(var q = 0 ; q < qslen ; q++){
-							configMap.qs.questions[q].user_answer = null;
-							// configMap.qs.questions[q].ispassed = false;
-						}
+						// for(var q = 0 ; q < qslen ; q++){
+						// 	configMap.qs.questions[q].user_answer = null;
+						// 	// configMap.qs.questions[q].ispassed = false;
+						// }
+
+						console.log(' Questions : ', configMap.qs.questions );
 					}
 					ajxCallback(result);
 				},
@@ -2282,6 +2367,7 @@ var App = (function(){
 					console.log('fudge on finding match! ', xhr);
 					// Display error handler
 					errorConnectionHandler(xhr, t, m);
+					freeze();
 				}
 			});
 			
@@ -2564,7 +2650,9 @@ var App = (function(){
 		configMap.modal.isActive = true;
 		console.log(t,m);
 
-		renderModal();
+		if( t !== 'abort' ){
+			renderModal();
+		}
 	};
 
 	var roundCaller = function(round){
@@ -2584,11 +2672,13 @@ var App = (function(){
 		console.log('It\'s alive!!!');
 		console.log('INITMODULE()');
 
+		var t;
+
 		var init = function(){
 			console.log('interval running....');
 			// console.log(localStorage[configMap.plstore.match]);
 
-			if( localStorage[configMap.plstore.match] ){
+			if( localStorage[configMap.plstore.match].length ){
 
 				// For debugging
 				// configMap.isStatic = true;
@@ -2607,11 +2697,17 @@ var App = (function(){
 				// Start
 				modes[mode]();
 
-				clearInterval(t);
+				clearTimeout(t);
+			}else{
+				initTimer();
 			}
 		};
 
-		var t = setInterval(init, 1000);
+		var initTimer = function(){
+			t = setTimeout(init, 2000);
+		}
+
+		initTimer();
 		
 	};
 

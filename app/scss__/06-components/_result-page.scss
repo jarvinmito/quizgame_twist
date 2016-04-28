@@ -124,15 +124,11 @@
     }
   }
   &__notify {
-    height: 7vh;
-    line-height: 7vh;
-    margin-bottom: 10px;
     text-align: center;
     font-weight: 600;
     font-size: 16px;
     margin-top: 0;
     color: $blue;
-    
     &.is-red {
       color: $red;
     }
